@@ -113,7 +113,8 @@ fn update_array(
     mut myarray: ResMut<MyCellArray>,
 ) {
     for row in 0..HEIGHT {
-        for column in 0..WIDTH {
+        let mut column = 0;
+        while column < WIDTH {
             let val = myarray.0[column + HEIGHT * row];
             match val {
                 1 => { // Sand
@@ -122,11 +123,11 @@ fn update_array(
                             //Cell below is empty
                             myarray.0[column + HEIGHT * row] = myarray.0[column + HEIGHT * (row - 1)];
                             myarray.0[column + HEIGHT * (row - 1)] = val;
-                        } else if column > 0 && myarray.0[(column - 1) + HEIGHT * (row - 1)] == 0 || column > 0 && myarray.0[(column - 1) + HEIGHT * (row - 1)] == 2 {
+                        } else if column > 0 && (myarray.0[(column - 1) + HEIGHT * (row - 1)] == 0 || column > 0 && myarray.0[(column - 1) + HEIGHT * (row - 1)] == 2) {
                             //Cell down and left is empty
                             myarray.0[column + HEIGHT * row] = myarray.0[(column - 1) + HEIGHT * (row - 1)];
                             myarray.0[(column - 1) + HEIGHT * (row - 1)] = val;
-                        } else if column < WIDTH - 1 && myarray.0[(column + 1) + HEIGHT * (row - 1)] == 0 || column < WIDTH - 1 && myarray.0[(column + 1) + HEIGHT * (row - 1)] == 2 {
+                        } else if column < WIDTH - 1 && (myarray.0[(column + 1) + HEIGHT * (row - 1)] == 0 || column < WIDTH - 1 && myarray.0[(column + 1) + HEIGHT * (row - 1)] == 2) {
                             //Cell down and right is empty
                             myarray.0[column + HEIGHT * row] = myarray.0[(column + 1) + HEIGHT * (row - 1)];
                             myarray.0[(column + 1) + HEIGHT * (row - 1)] = val;
@@ -148,19 +149,21 @@ fn update_array(
                         myarray.0[column + HEIGHT * row] = 0;
                     } else if column > 0 && myarray.0[(column - 1) + HEIGHT * row] == 0 {
                         //Cell right is empty
-                        println!("Flowing Left!");
+                        //println!("Flowing Left!");
                         myarray.0[(column - 1) + HEIGHT * row] = val;
                         myarray.0[column + HEIGHT * row] = 0;
                     } else if column < WIDTH - 1 && myarray.0[(column + 1) + HEIGHT * row] == 0 {
                         //Cell right is empty
-                        println!("Flowing right!");
+                        //println!("Flowing right!");
                         myarray.0[(column + 1) + HEIGHT * row] = val;
                         myarray.0[column + HEIGHT * row] = 0;
+                        column += 1;
                     }
                 }
                 _ => {
                 }
             };
+            column += 1;
         }
     }
 }
@@ -213,10 +216,21 @@ fn my_cursor_system(
         let c = (world_position.x / CELL_SIZE as f32).floor() as i32 + WIDTH as i32/ 2 + 1;
 
         if (r < HEIGHT as i32 && r >= 0) && (c < WIDTH as i32 && c >= 0) {
-            myarray.0[c as usize + HEIGHT * r as usize] = particle_type.0;
+            myarray.0[coords_to_index(r, c)] = particle_type.0;
+            myarray.0[coords_to_index(r + 1, c)] = particle_type.0;
+            myarray.0[coords_to_index(r - 1, c)] = particle_type.0;
+            myarray.0[coords_to_index(r, c + 1)] = particle_type.0;
+            myarray.0[coords_to_index(r, c - 1)] = particle_type.0;
             //eprintln!("World coords: {}/{}", world_position.x.floor(), world_position.y.floor());
             //eprintln!("Converted coords: {}/{}, {}", r, c, c + HEIGHT as i32 * r);
         }
     }
+}
+
+fn coords_to_index(
+    r: i32,
+    c: i32,
+) -> usize {
+    c as usize + HEIGHT * r as usize
 }
 
