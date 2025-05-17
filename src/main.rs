@@ -7,15 +7,17 @@ use bevy::{
 // These constants are defined in `Transform` units.
 // Using the default 2D camera they correspond 1:1 with screen pixels.
 
-const WIDTH: usize = 256;
-const HEIGHT: usize = 256;
+const WIDTH: usize = 128;
+const HEIGHT: usize = 128;
 
-const CELL_SIZE: f32 = 2.; //Scale for cells
+const CELL_SIZE: f32 = 4.; //Scale for cells
 
-const COLORS: [Color; 4] = [Color::srgb(0.67, 0.88, 0.91), //Air
+const COLORS: [Color; 5] = [Color::srgb(0.67, 0.88, 0.91), //Air
                             Color::srgb(1.0, 0.906, 0.702), //Sand
                             Color::srgb(0.0, 0.0, 1.0), //Water
-                            Color::srgb(0.5, 0.5, 0.5)]; // Background
+                            Color::srgb(0.5, 0.5, 0.5), // Rock
+                            Color::srgb(0.2, 0.2, 0.2) // Smoke
+];
 
 #[derive(Resource, Default)]
 struct ParticleType(i32);
@@ -160,9 +162,44 @@ fn update_array(
                         column += 1;
                     }
                 }
-                _ => {
-                }
+                _ => {}
             };
+            column += 1;
+        }
+    }
+    for row in (0..WIDTH).rev() {
+        let mut column = 0;
+        while column < WIDTH {
+            let val = myarray.0[column + HEIGHT * row];
+            match val {
+                4 => { // Smoke
+                    if row < HEIGHT-1 {
+                        if myarray.0[column + HEIGHT * (row + 1)] == 0 {
+                            //Cell above is empty
+                            myarray.0[column + HEIGHT * row] = 0;
+                            myarray.0[column + HEIGHT * (row + 1)] = val;
+                        } else if column > 0 && myarray.0[(column - 1) + HEIGHT * (row + 1)] == 0 {
+                            //Cell up and left is empty
+                            myarray.0[column + HEIGHT * row] = 0;
+                            myarray.0[(column - 1) + HEIGHT * (row + 1)] = val;
+                        } else if column < WIDTH - 1 && myarray.0[(column + 1) + HEIGHT * (row + 1)] == 0 {
+                            //Cell up and right is empty
+                            myarray.0[column + HEIGHT * row] = 0;
+                            myarray.0[(column + 1) + HEIGHT * (row + 1)] = val;
+                        } else if column > 0 && myarray.0[(column - 1) + HEIGHT * row] == 0 {
+                            //Cell right is empty
+                            myarray.0[(column - 1) + HEIGHT * row] = val;
+                            myarray.0[column + HEIGHT * row] = 0;
+                        } else if column < WIDTH - 1 && myarray.0[(column + 1) + HEIGHT * row] == 0 {
+                            //Cell right is empty
+                            myarray.0[(column + 1) + HEIGHT * row] = val;
+                            myarray.0[column + HEIGHT * row] = 0;
+                            column += 1;
+                        }
+                    }
+                }
+                _ => {}
+            }
             column += 1;
         }
     }
@@ -193,6 +230,10 @@ fn select_type(
         particle_type.0 = 1;
     } else if keys.just_pressed(KeyCode::Digit2) {
         particle_type.0 = 2;
+    } else if keys.just_pressed(KeyCode::Digit3) {
+        particle_type.0 = 3;
+    } else if keys.just_pressed(KeyCode::Digit4) {
+        particle_type.0 = 4;
     }
 }
 
@@ -221,6 +262,10 @@ fn my_cursor_system(
             myarray.0[coords_to_index(r - 1, c)] = particle_type.0;
             myarray.0[coords_to_index(r, c + 1)] = particle_type.0;
             myarray.0[coords_to_index(r, c - 1)] = particle_type.0;
+            myarray.0[coords_to_index(r + 1, c - 1)] = particle_type.0;
+            myarray.0[coords_to_index(r - 1, c - 1)] = particle_type.0;
+            myarray.0[coords_to_index(r + 1, c + 1)] = particle_type.0;
+            myarray.0[coords_to_index(r - 1, c + 1)] = particle_type.0;
             //eprintln!("World coords: {}/{}", world_position.x.floor(), world_position.y.floor());
             //eprintln!("Converted coords: {}/{}, {}", r, c, c + HEIGHT as i32 * r);
         }
